@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SeminarFinal_v5.1 - Room {{ room_code }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v='20260504-1508') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <div id="popup-container" class="popup-container"></div>
+    <div class="dashboard">
+        <header class="header">
+            <div class="header-left">
+                <h1>📈 SeminarFinal_v5.1</h1>
+                <span class="room-badge">Room: {{ room_code }}</span>
+            </div>
+            <div class="header-center">
+                <div class="date-display">
+                    <span class="date-label">Game Date</span>
+                    <span class="date-value" id="current-date">{{ start_date }}</span>
+                </div>
+                <div class="game-status">
+                    <span class="status-indicator" id="status-indicator"></span>
+                    <span id="status-text">Paused</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <span class="user-badge">👤 {{ username }}</span>
+                {% if is_admin %}
+                <span class="admin-badge">Admin</span>
+                {% endif %}
+            </div>
+        </header>
+
+        {% if is_admin %}
+        <div class="admin-controls admin-controls-row">
+            <button class="btn btn-primary" id="play-pause-btn">
+                <span class="btn-icon">▶</span> Play
+            </button>
+        </div>
+        {% endif %}
+
+        <div class="ticker-wrap" id="headline-ticker">
+            <div class="ticker">
+                <span class="ticker-text" id="headline-text">Loading headline...</span>
+            </div>
+            <span class="ticker-meta" id="news-year-label">Year: {{ start_date[:4] }}</span>
+        </div>
+
+        <main class="main-content">
+            <!-- Top Row: Charts Side-by-Side (Admin Only) -->
+            {% if is_admin %}
+            <section class="charts-row" id="charts-row">
+                <div class="chart-column" id="dji-column">
+                    <div class="chart-wrapper">
+                        <h3 id="dji-chart-title">Dow Jones Industrial Average (^DJI)</h3>
+                        <div class="chart-value" id="dji-value">--</div>
+                        <div class="chart-container">
+                            <canvas id="chart-dji"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-column" id="sp500-column">
+                    <div class="chart-wrapper" id="sp500-chart-wrapper">
+                        <h3 id="sp500-chart-title">S&P 500 (^GSPC)</h3>
+                        <div class="chart-value" id="sp500-value">--</div>
+                        <div class="chart-container">
+                            <canvas id="chart-gspc"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            {% endif %}
+
+            <!-- Trading Sections (Players Only) -->
+            {% if not is_admin %}
+            <section class="trading-sections">
+                <div class="trading-card" id="dji-trading">
+                    <h3>Dow Jones (^DJI)</h3>
+                    <div class="stock-price">
+                        <span class="price" id="price-^DJI">--</span>
+                        <span class="price-change" id="change-^DJI"></span>
+                    </div>
+                    <div class="stock-actions">
+                        <button class="btn btn-buy" data-ticker="^DJI">Buy</button>
+                        <button class="btn btn-sell" data-ticker="^DJI">Sell</button>
+                    </div>
+                    <div class="stock-status" id="status-^DJI"></div>
+                </div>
+                <div class="trading-card" id="gspc-trading">
+                    <h3>S&P 500 (^GSPC)</h3>
+                    <div class="stock-price">
+                        <span class="price" id="price-^GSPC">--</span>
+                        <span class="price-change" id="change-^GSPC"></span>
+                    </div>
+                    <div class="stock-actions">
+                        <button class="btn btn-buy" data-ticker="^GSPC" id="btn-buy-^GSPC">Buy</button>
+                        <button class="btn btn-sell" data-ticker="^GSPC" id="btn-sell-^GSPC">Sell</button>
+                    </div>
+                    <div class="stock-status" id="status-^GSPC"></div>
+                </div>
+            </section>
+            {% endif %}
+
+            <!-- Bottom Row: Portfolio & Leaderboard -->
+            {% if not is_admin %}
+            <section class="bottom-row">
+                <div class="portfolio-card">
+                    <h2>Your Portfolio</h2>
+                    <div class="portfolio-summary">
+                        <div class="portfolio-item">
+                            <span class="label">Cash</span>
+                            <span class="value" id="cash-balance">$0.00</span>
+                        </div>
+                        <div class="portfolio-item">
+                            <span class="label">Holdings Value</span>
+                            <span class="value" id="holdings-value">$0.00</span>
+                        </div>
+                        <div class="portfolio-item total">
+                            <span class="label">Net Worth</span>
+                            <span class="value" id="net-worth">$0.00</span>
+                        </div>
+                    </div>
+                    <div class="holdings-list" id="holdings-list">
+                        <p class="empty-message">No holdings yet</p>
+                    </div>
+                </div>
+                <div class="leaderboard-card">
+                    <h2>🏆 Leaderboard</h2>
+                    <div class="leaderboard-list" id="leaderboard-list"></div>
+                </div>
+            </section>
+            <!-- Insider Trading Card -->
+            <div class="insider-card" id="insider-card">
+                <h3>🕵️ Insider Trading</h3>
+                <p class="insider-message" id="insider-message"></p>
+                <button class="btn btn-primary" id="insider-rumor-btn" disabled>View Insider Rumor</button>
+            </div>
+            {% else %}
+            <section class="bottom-row">
+                <div class="leaderboard-card full-width">
+                    <h2>🏆 Leaderboard</h2>
+                    <div class="leaderboard-list" id="leaderboard-list"></div>
+                </div>
+            </section>
+            {% endif %}
+        </main>
+    </div>
+
+    {% if not is_admin %}
+    <div class="modal" id="trade-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Trade</h3>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="trade-info">
+                    <span id="modal-ticker">TICK</span>
+                    <span id="modal-price">$0.00</span>
+                </div>
+                <div class="form-group">
+                    <label id="trade-input-label" for="trade-amount">Amount</label>
+                    <input type="number" id="trade-amount" value="100" min="1" step="0.01">
+                </div>
+                <div class="trade-total">
+                    <span id="trade-total-label">Result:</span>
+                    <span id="trade-total">0.00</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" id="modal-cancel">Cancel</button>
+                <button class="btn btn-confirm" id="modal-confirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="game-over-overlay" id="game-over-overlay">
+        <div class="game-over-card">
+            <span class="game-over-kicker">Market Close</span>
+            <h2>Game Over</h2>
+            <p id="game-over-date">You reached the present day.</p>
+            <div class="game-over-stats">
+                <div>
+                    <span>Total Net Worth</span>
+                    <strong id="game-over-worth">$0.00</strong>
+                </div>
+                <div>
+                    <span>Final Placement</span>
+                    <strong id="game-over-rank">--</strong>
+                </div>
+            </div>
+            <div class="game-over-podium" id="game-over-podium"></div>
+            <button class="btn btn-primary" id="game-over-close">View Dashboard</button>
+        </div>
+    </div>
+
+    <script>
+        window.roomCode = '{{ room_code }}';
+        window.username = '{{ username }}';
+        window.isAdmin = {{ is_admin | tojson }};
+        window.startDate = '{{ start_date }}';
+        window.minDate = '{{ min_date }}';
+        window.maxDate = '{{ max_date }}';
+        window.tickers = {{ tickers | tojson }};
+        window.companyNames = {{ company_names | tojson }};
+    </script>
+    <script src="{{ url_for('static', filename='js/script.js', v='20260504-1508') }}"></script>
+</body>
+</html>
