@@ -11,7 +11,6 @@ import json
 import os
 import random
 import time
-import pandas as pd
 
 # Import practice mode configuration and practice data
 from practice_mode import PRACTICE_MODE

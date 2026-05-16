@@ -1,9 +1,5 @@
-Flask==3.0.0
-flask-socketio==5.3.5
-eventlet==0.33.3
+Flask==3.0.2
+flask-socketio==5.3.6
+python-socketio==5.11.1
+python-engineio==4.9.0
 gunicorn==21.2.0
-python-socketio==5.10.0
-python-engineio==4.8.0
-pandas==2.1.4
-yfinance==0.2.36
-requests==2.31.0
